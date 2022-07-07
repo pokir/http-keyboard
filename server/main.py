@@ -19,13 +19,20 @@ def check_code():
     return None
 
 
-def check_move_mouse_direction():
-    direction = request.args.get('direction')
+def check_move_mouse_xy():
+    xy = request.args.get('xy')
 
-    if not direction: return 'No direction given', 400
+    if not xy: return 'No xy given', 400
 
-    if direction not in ('left', 'right', 'up', 'down'):
-        return 'Direction is invalid', 400
+    try:
+        split = xy.split(',')
+        int(split[0])
+        int(split[1])
+    except ValueError:
+        return 'xy is invalid'
+
+    if len(xy.split(',')) != 2:
+        return 'xy is invalid'
 
     return None
 
@@ -66,16 +73,11 @@ def root():
 @app.route('/api/movemouse', methods=['GET'])
 def move_mouse():
     if error := check_code(): return error
-    if error := check_move_mouse_direction(): return error
+    if error := check_move_mouse_xy(): return error
 
-    direction = request.args.get('direction')
+    xy = request.args.get('xy')
 
-    pyautogui.move(*{
-        'left': (-10, 0),
-        'right': (10, 0),
-        'up': (0, -10),
-        'down': (0, 10)
-    }[direction])
+    pyautogui.move(list(map(int, xy.split(','))));
 
     return 'Success', 200
 

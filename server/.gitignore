@@ -9,3 +9,6 @@
 venv/
 __pycache__/
 *.pyc
+
+# Files made while running script
+code.txt
