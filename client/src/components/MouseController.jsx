@@ -1,77 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const MouseController = () => {
-  const [ isDragging, setIsDragging ] = useState(false);
-  const [ lastTouch, setLastTouch ] = useState(null);
-
-  const mouseMoveEventListenerCallback = event => {
-    const changeX = event.movementX;
-    const changeY = event.movementY;
-
-    // TODO: events should go to server in the order they were input, not async
-    fetch(`${process.env.REACT_APP_API}/api/movemouse?xy=${changeX},${changeY}&code=${localStorage.getItem('code')}`);
-  };
-
-  const touchMoveEventListenerCallback = event => {
-    event.preventDefault();
-
-    const changeX = event.changedTouches[0].clientX - lastTouch.clientX;
-    const changeY = event.changedTouches[0].clientY - lastTouch.clientY;
-
-    setLastTouch(event.changedTouches[0]);
-
-    // TODO: events should go to server in the order they were input, not async
-    fetch(`${process.env.REACT_APP_API}/api/movemouse?xy=${changeX},${changeY}&code=${localStorage.getItem('code')}`);
-  };
+  const [ pos, setPos ] = useState({x: null, y: null});
+  const ref = useRef();
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', mouseMoveEventListenerCallback);
-      window.addEventListener('touchmove', touchMoveEventListenerCallback);
-    } else {
-      window.removeEventListener('mousemove', mouseMoveEventListenerCallback);
-      window.removeEventListener('touchmove', touchMoveEventListenerCallback);
-      setLastTouch(null);
+    if (pos.x && pos.y) {
+      const rect = ref.current.getBoundingClientRect();
+
+      // center of the div
+      const centerX = rect.x + rect.width / 2;
+      const centerY = rect.y + rect.height / 2;
+
+      // vector from center of div to click position
+      const vecX = pos.x - centerX;
+      const vecY = pos.y - centerY;
+
+      // vector with magnitude relative to circle size (not a unit vector)
+      // assuming a perfect circle shape (width = height)
+      const radius = rect.width / 2;
+      const normX = vecX / radius;
+      const normY = vecY / radius;
+
+      // change in mouse position in pixels
+      const changeX = Math.round(normX * 15);
+      const changeY = Math.round(normY * 15);
+
+      fetch(`${process.env.REACT_APP_API}/api/movemouse?xy=${changeX},${changeY}&code=${localStorage.getItem('code')}`);
     }
-  }, [isDragging]);
+  }, [pos]);
+
+  const positionUpdateEventCallback = event => {
+    event.preventDefault();
+    setPos({x: event.clientX, y: event.clientY});
+  };
 
   return (
-    <div
-      style={{
-        width: '500px',
-        height: '350px',
-        backgroundColor: '#dddddd',
-        borderRadius: '25px',
-      }}
+    <div>
+      <div
+        ref={ref}
 
-      onTouchStart={event => {
-        event.preventDefault();
-        setLastTouch(event.touches[0]);
-        setIsDragging(true);
-      }}
+        style={{
+          borderRadius: '50%',
+          width: '200px',
+          height: '200px',
+          backgroundColor: '#dddddd',
+        }}
 
-      onTouchEnd={event => {
-        event.preventDefault();
-        setIsDragging(false);
-      }}
+        onMouseDown={positionUpdateEventCallback}
+        onMouseMove={positionUpdateEventCallback}
 
-      onTouchCancel={event => {
-        event.preventDefault();
-        setIsDragging(false);
-      }}
-
-      onMouseDown={() => {
-        setIsDragging(true);
-      }}
-
-      onMouseUp={() => {
-        setIsDragging(false);
-      }}
-
-      onMouseOut={() => {
-        setIsDragging(false);
-      }}
-    >
+        onTouchStart={positionUpdateEventCallback}
+        onTouchMove={positionUpdateEventCallback}
+      >
+      </div>
     </div>
   );
 };
