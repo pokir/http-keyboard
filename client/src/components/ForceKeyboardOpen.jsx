@@ -9,6 +9,7 @@ const ForceKeyboardOpen = () => {
 
   return (
     <div ref={ref} contentEditable={true} style={{
+      position: 'fixed',
       width: window.innerWidth,
       height: window.innerHeight,
       opacity: 0,

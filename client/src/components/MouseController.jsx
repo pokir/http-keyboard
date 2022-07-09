@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Mouse controller (only for touch screen devices)
 const MouseController = () => {
-  const [ pos, setPos ] = useState({x: null, y: null});
+  const [ touchPos, setTouchPos ] = useState({x: null, y: null});
+  const [ mouseDisplacement, setMouseDisplacement ] = useState({x: null, y: null});
+
   const ref = useRef();
 
+  const touchEventCallback = event => {
+    event.preventDefault();
+
+    setTouchPos({x: event.touches[0].clientX, y: event.touches[0].clientY});
+  };
+
   useEffect(() => {
-    if (pos.x && pos.y) {
+    if (touchPos.x && touchPos.y) { // check if they are not null (default value)
       const rect = ref.current.getBoundingClientRect();
 
       // center of the div
@@ -13,8 +22,8 @@ const MouseController = () => {
       const centerY = rect.y + rect.height / 2;
 
       // vector from center of div to click position
-      const vecX = pos.x - centerX;
-      const vecY = pos.y - centerY;
+      const vecX = touchPos.x - centerX;
+      const vecY = touchPos.y - centerY;
 
       // vector with magnitude relative to circle size (not a unit vector)
       // assuming a perfect circle shape (width = height)
@@ -26,14 +35,26 @@ const MouseController = () => {
       const changeX = Math.round(normX * 15);
       const changeY = Math.round(normY * 15);
 
-      fetch(`${process.env.REACT_APP_API}/api/movemouse?xy=${changeX},${changeY}&code=${localStorage.getItem('code')}`);
-    }
-  }, [pos]);
+      // update the mouse displacement
+      setMouseDisplacement({x: mouseDisplacement.x + changeX, y: mouseDisplacement.y + changeY});
 
-  const positionUpdateEventCallback = event => {
-    event.preventDefault();
-    setPos({x: event.clientX, y: event.clientY});
-  };
+      // reset touchPos so that the change in mouse displacement doesn't update it again
+      setTouchPos({x: null, y: null});
+    }
+  }, [touchPos, mouseDisplacement]);
+
+  useEffect(() => {
+    if (mouseDisplacement.x && mouseDisplacement.y) {
+      const displacement = Math.sqrt(mouseDisplacement.x ** 2 + mouseDisplacement.y ** 2);
+
+      // only move the mouse if the displacement is big enough
+      if (displacement > 10) {
+        const changeX = mouseDisplacement.x;
+        const changeY = mouseDisplacement.y;
+        fetch(`${process.env.REACT_APP_API}/api/movemouse?xy=${changeX},${changeY}&code=${localStorage.getItem('code')}`);
+      }
+    }
+  }, [mouseDisplacement]);
 
   return (
     <div>
@@ -41,17 +62,15 @@ const MouseController = () => {
         ref={ref}
 
         style={{
+          position: 'fixed',
           borderRadius: '50%',
-          width: '200px',
-          height: '200px',
+          width: '400px',
+          height: '400px',
           backgroundColor: '#dddddd',
         }}
 
-        onMouseDown={positionUpdateEventCallback}
-        onMouseMove={positionUpdateEventCallback}
-
-        onTouchStart={positionUpdateEventCallback}
-        onTouchMove={positionUpdateEventCallback}
+        onTouchStart={touchEventCallback}
+        onTouchMove={touchEventCallback}
       >
       </div>
     </div>
