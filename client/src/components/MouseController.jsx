@@ -32,8 +32,8 @@ const MouseController = () => {
       const normY = vecY / radius;
 
       // change in mouse position in pixels
-      const changeX = Math.round(normX * 15);
-      const changeY = Math.round(normY * 15);
+      const changeX = Math.round(normX);
+      const changeY = Math.round(normY);
 
       // update the mouse displacement
       setMouseDisplacement({x: mouseDisplacement.x + changeX, y: mouseDisplacement.y + changeY});
